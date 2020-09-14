@@ -1,11 +1,11 @@
-PROFILE = s3sbx
+PROFILE = 
 ENVIRONMENT = sbx
-PREFIX = s3docs
-Sender = karthickcse05@gmail.com
-Receiver = karthick.s@emishealth.com
+PREFIX = 
+Sender = 
+Receiver = 
 Days = 14
-BucketName = sbx-england-documents
-application = s3-docs
+BucketName = 
+application = 
 
 
 

@@ -1,13 +1,13 @@
-PROFILE = idsbx
+PROFILE = 
 ENVIRONMENT = sbx
-PREFIX = int-docs
-Sender = karthickcse05@gmail.com
-Receiver = karthick.s@emishealth.com
+PREFIX = 
+Sender = 
+Receiver = 
 Days = 14
-application = int-docs
-ECRImageURI = 570050899301.dkr.ecr.eu-west-2.amazonaws.com/sbx-unused-ecr
-ECRRepoName = sbx-unused-ecr
-VPCID = vpc-040dcb6c436e97550
+application = 
+ECRImageURI = 
+ECRRepoName = 
+VPCID = 
 
 
 
