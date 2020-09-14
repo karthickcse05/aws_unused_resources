@@ -4,3 +4,5 @@ Can be handled in two ways. Either Lambda or ECS Task
 
 [[Lambda]](Lambda/README.md)
 
+[[ECS Task]](ECS/README.md)
+

@@ -43,7 +43,7 @@ def getAvailableVolumes():
 def getLogsWithNoRetention():
     # returns list of log groups with no retention days
     cw = boto3.client('logs')
-    loggroups = ['/aws','API-Gateway','RDSOSMetrics','test',os.environ['env']]
+    loggroups = ['/aws','API-Gateway','RDSOSMetrics','test',os.environ['env'],'/ecs']
     logswithNoRetention = []
     for groupname in loggroups:
         cwresponse = cw.describe_log_groups(logGroupNamePrefix=groupname)
@@ -465,17 +465,23 @@ def lambda_handler(event, context):
                     reason.append("Certificate is not used")
 
             if getvalue["resourceType"] == "AWS::SecretsManager::Secret":
-                # print(getvalue["resourceId"])
+                print(getvalue["resourceId"])
                 secreclient = boto3.client('secretsmanager')
                 secrtresponse = secreclient.describe_secret(
                     SecretId=getvalue["resourceId"])
-                delta = endTime.replace(
-                    tzinfo=None) - secrtresponse["LastAccessedDate"].replace(tzinfo=None)
-                if (delta.days) > 14:
-                    resourceType.append(getvalue["resourceType"])
-                    resourceName.append(getvalue["resourceId"].split(":")[6])
-                    count.append(1)
-                    reason.append("Secret is not used")
+                if 'LastAccessedDate' in secrtresponse:
+                    delta = endTime.replace(
+                        tzinfo=None) - secrtresponse['LastAccessedDate'].replace(tzinfo=None)
+                    if (delta.days) > 14:
+                        resourceType.append(getvalue["resourceType"])
+                        resourceName.append(getvalue["resourceId"].split(":")[6])
+                        count.append(1)
+                        reason.append("Secret Manager Value is not used")
+                else:
+                     resourceType.append(getvalue["resourceType"])
+                     resourceName.append(getvalue["resourceId"].split(":")[6])
+                     count.append(1)
+                     reason.append("Secret Manager Value is not used")        
 
             if getvalue["resourceType"] == "AWS::EC2::NatGateway":
                 # print(getvalue["resourceId"])
@@ -818,7 +824,7 @@ def send_mail(table, startTime, endTime):
     RECIPIENT = os.environ['receiver']
     #print(RECIPIENT)
     CONFIGURATION_SET = "ConfigSet"
-    SUBJECT = "Un-used AWS Resources in int-docs " + \
+    SUBJECT = "Un-used AWS Resources in "+ os.environ['app'] +" "+ \
         os.environ['env'] + " environment"
     BODY_TEXT = ("Amazon SES Test (Python)\r\n"
                  "This email was sent with Amazon SES using the "

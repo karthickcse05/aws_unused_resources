@@ -1,0 +1,174 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: "AWS::Serverless-2016-10-31"
+
+Description: >
+  Scheduled ECS Task that will Check the unused aws resources based on the time.
+
+Parameters:
+  AWSUnusedImage:
+    Description: Docker image to use
+    Type: String
+
+  sender:
+    Type: String
+    Default: "xyz@xyz.com"
+    Description: mail id of the sender.
+
+  receiver:
+    Type: String
+    Default: "xyz@xyz.com"
+    Description: mail id of the receiver.
+
+  env:
+    Type: String
+    Default: sbx
+    Description: environment.
+    AllowedValues:
+      - prd
+      - tst
+      - dev
+      - stg
+      - sbx
+
+  days:
+    Type: String
+    Default: "14"
+    Description: days difference for resurces.
+
+  application:
+    Type: String
+    Default: "test"
+    Description: name of the application.
+
+  VpcId:
+    Type: String
+    Default: "vpc-12345678901"
+    Description: id of the vpc.
+
+  Prefix:
+    Type: String
+    Description: The unique prefix for resources
+
+Resources:
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: unusedres-ecs-execution-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: unusedres-ecs-execution-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "*"
+                Resource: "*"
+
+  EventRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: unusedres-event-execution-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - events.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: unusedres-events-execution-policy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: "*"
+                Resource: "*"
+
+  UnusedLogsGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub ${Prefix}-${env}-unused
+      RetentionInDays: 60
+
+  UnusedTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub ${Prefix}-${env}-unused
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - "FARGATE"
+      Cpu: "256"
+      Memory: "512"
+      ExecutionRoleArn: !GetAtt ExecutionRole.Arn
+      TaskRoleArn: !GetAtt ExecutionRole.Arn
+      ContainerDefinitions:
+        - Name: UnusedAWS
+          Essential: true
+          Image: !Ref AWSUnusedImage
+          Environment:
+            - Name: days
+              Value: !Ref days
+            - Name: env
+              Value: !Ref env
+            - Name: receiver
+              Value: !Ref receiver
+            - Name: sender
+              Value: !Ref sender
+            - Name: app
+              Value: !Ref application
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-group: !Ref "UnusedLogsGroup"
+              awslogs-region: !Ref "AWS::Region"
+              awslogs-stream-prefix: Unused
+
+  EcsSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "ECS Security Group"
+      VpcId: !Ref VpcId
+
+  EcsSecurityGroupHTTPinbound:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref EcsSecurityGroup
+      IpProtocol: "tcp"
+      FromPort: 80
+      ToPort: 80
+      CidrIp: 0.0.0.0/0
+
+  UnusedResourcesEventRule:
+    Type: AWS::Events::Rule
+    DependsOn: UnusedTaskDefinition
+    Properties:
+      Description: "Trigger weekly once to check the unused resources"
+      ScheduleExpression: "cron(30 5 ? * FRI *)"
+      State: "ENABLED"
+      Targets:
+        - Arn: !Sub "arn:aws:ecs:${AWS::Region}:${AWS::AccountId}:cluster/${env}-unused-ecs"
+          Id: "ECSTask"
+          RoleArn: !GetAtt EventRole.Arn
+          EcsParameters:
+            TaskDefinitionArn: !Ref UnusedTaskDefinition
+            TaskCount: 1
+            LaunchType: "FARGATE"
+            NetworkConfiguration:
+              AwsVpcConfiguration:
+                AssignPublicIp: ENABLED
+                SecurityGroups:
+                  - !Ref EcsSecurityGroup
+                Subnets:
+                  -  #subnet-id

@@ -1,10 +1,11 @@
-PROFILE = idsbx
+PROFILE = s3sbx
 ENVIRONMENT = sbx
-PREFIX = intdocs
-Sender = xyz@gmail.com
-Receiver = xyz@gmail.com
+PREFIX = s3docs
+Sender = karthickcse05@gmail.com
+Receiver = karthick.s@emishealth.com
 Days = 14
-BucketName = sbx-int-docs.emishealthsolutions.com-logs
+BucketName = sbx-england-documents
+application = s3-docs
 
 
 
@@ -27,6 +28,15 @@ explain:
 .PHONY: build
 build: ## Zips the code to the lambda.zip
 	zip -ur ./src/lambda.zip ./src/aws_resources.py
+
+.PHONY: Alternativebuild
+Alternativebuild: ## alternative build # to run this you need WSL in your system
+	cd src
+	apt update
+	apt-get install -y libsasl2-dev python3-dev libldap2-dev libssl-dev python3-pip
+	pip3 install -r requirements.txt --target .
+	zip -qr lambdas.zip ./*
+
 
 .PHONY: package
 package: ## packages the file in s3
@@ -58,6 +68,7 @@ deploy:  ## deploy the  cloudformation stack in AWS
 		ParameterKey=receiver,ParameterValue=$(Receiver) \
 		ParameterKey=env,ParameterValue=$(ENVIRONMENT) \
 		ParameterKey=days,ParameterValue=$(Days) \
+		ParameterKey=application,ParameterValue=$(application) \
 
 .PHONY: create_bucket
 create_bucket: ## Creates a new bucket cloudformation stack in AWS

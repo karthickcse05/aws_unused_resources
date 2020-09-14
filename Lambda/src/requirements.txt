@@ -1,0 +1,5 @@
+boto3==1.14.60
+psycopg2==2.8.6
+botocore==1.17.60
+requests==2.24.0
+pandas==1.1.2

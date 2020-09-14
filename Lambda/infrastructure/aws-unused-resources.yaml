@@ -25,6 +25,11 @@ Parameters:
     Default: "14"
     Description: days difference for resurces.
 
+  application:
+    Type: String
+    Default: "test"
+    Description: name of the application.
+
 Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -64,6 +69,7 @@ Resources:
           env: !Ref env
           receiver: !Ref receiver
           sender: !Ref sender
+          app: !Ref application
       MemorySize: 512
       Timeout: 60
 
