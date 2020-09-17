@@ -10,18 +10,6 @@ from awsunusedresources import unused_res
 import sys
 
 
-def data_table(df, column):
-    result_table = '<table border = 1><tr bgcolor="Blue"><th>Resource Type</th><th>Resource Name / Id</th><th>{}</th></tr>'
-    result_table = result_table.format(column)
-    # print(column)
-    # print(result_table)
-    for index, row in df.iterrows():
-        result_table += '<tr><td>{}</td><td>{}</td><td>{}</td>'.format(
-            row['resourceType'], row['resourceName'], row['reason'])
-    result_table += '</table>'
-    return result_table
-
-
 def main():
     print('Finding Unused Resources in AWS:')
     try:
