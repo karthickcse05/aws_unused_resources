@@ -457,32 +457,40 @@ def main():
             if getvalue["resourceType"] == "AWS::ACM::Certificate":
                 # print(getvalue["resourceId"])
                 certclient = boto3.client('acm')
-                certresponse = certclient.describe_certificate(
+                try:
+                    certresponse = certclient.describe_certificate(
                     CertificateArn=getvalue["resourceId"])
-                if (len(certresponse['Certificate']["InUseBy"])) == 0:
-                    resourceType.append(getvalue["resourceType"])
-                    resourceName.append(getvalue["resourceId"].split(":")[5])
-                    count.append(1)
-                    reason.append("Certificate is not used")
+                    if (len(certresponse['Certificate']["InUseBy"])) == 0:
+                        resourceType.append(getvalue["resourceType"])
+                        resourceName.append(getvalue["resourceId"].split(":")[5])
+                        count.append(1)
+                        reason.append("Certificate is not used")
+                except:
+                    print("No data in certificates")
+                
 
             if getvalue["resourceType"] == "AWS::SecretsManager::Secret":
                 print(getvalue["resourceId"])
                 secreclient = boto3.client('secretsmanager')
-                secrtresponse = secreclient.describe_secret(
+                try:
+                    secrtresponse = secreclient.describe_secret(
                     SecretId=getvalue["resourceId"])
-                if 'LastAccessedDate' in secrtresponse:
-                    delta = endTime.replace(
-                        tzinfo=None) - secrtresponse['LastAccessedDate'].replace(tzinfo=None)
-                    if (delta.days) > 14:
+                    if 'LastAccessedDate' in secrtresponse:
+                        delta = endTime.replace(
+                            tzinfo=None) - secrtresponse['LastAccessedDate'].replace(tzinfo=None)
+                        if (delta.days) > 14:
+                            resourceType.append(getvalue["resourceType"])
+                            resourceName.append(getvalue["resourceId"].split(":")[6])
+                            count.append(1)
+                            reason.append("Secret Manager Value is not used")
+                    else:
                         resourceType.append(getvalue["resourceType"])
                         resourceName.append(getvalue["resourceId"].split(":")[6])
                         count.append(1)
                         reason.append("Secret Manager Value is not used")
-                else:
-                     resourceType.append(getvalue["resourceType"])
-                     resourceName.append(getvalue["resourceId"].split(":")[6])
-                     count.append(1)
-                     reason.append("Secret Manager Value is not used")        
+                except:
+                    print("No data in secret Manager")
+                        
 
             if getvalue["resourceType"] == "AWS::EC2::NatGateway":
                 # print(getvalue["resourceId"])
@@ -569,30 +577,38 @@ def main():
             if getvalue["resourceType"] == "AWS::CodePipeline::Pipeline":
                 # print(getvalue["resourceId"])
                 pipelineclient = boto3.client('codepipeline')
-                pipelineresponse = pipelineclient.list_pipeline_executions(
+                try:
+                    pipelineresponse = pipelineclient.list_pipeline_executions(
                     pipelineName=getvalue["resourceId"])
-                cpdelta = endTime.replace(
-                    tzinfo=None) - pipelineresponse["pipelineExecutionSummaries"][0]["lastUpdateTime"].replace(tzinfo=None)
-                if (cpdelta.days) > 14:
-                    resourceType.append(getvalue["resourceType"])
-                    resourceName.append(getvalue["resourceId"])
-                    count.append(1)
-                    reason.append("Pipeline is not used")
+                    cpdelta = endTime.replace(
+                        tzinfo=None) - pipelineresponse["pipelineExecutionSummaries"][0]["lastUpdateTime"].replace(tzinfo=None)
+                    if (cpdelta.days) > 14:
+                        resourceType.append(getvalue["resourceType"])
+                        resourceName.append(getvalue["resourceId"])
+                        count.append(1)
+                        reason.append("Pipeline is not used")
+                except:
+                    print("No data in pipeline")
+                
 
             if getvalue["resourceType"] == "AWS::CodeBuild::Project":
                 # print(getvalue["resourceId"])
                 cbclient = boto3.client('codebuild')
-                cbresponse = cbclient.list_builds_for_project(
+                try:
+                    cbresponse = cbclient.list_builds_for_project(
                     projectName=getvalue["resourceName"], sortOrder='DESCENDING')
-                cbbuildresponse = cbclient.batch_get_builds(
-                    ids=[cbresponse["ids"][0]])
-                cbdelta = endTime.replace(
-                    tzinfo=None) - cbbuildresponse["builds"][0]["startTime"].replace(tzinfo=None)
-                if (cbdelta.days) > 14:
-                    resourceType.append(getvalue["resourceType"])
-                    resourceName.append(getvalue["resourceName"])
-                    count.append(1)
-                    reason.append("Code Build is not used")
+                    cbbuildresponse = cbclient.batch_get_builds(
+                        ids=[cbresponse["ids"][0]])
+                    cbdelta = endTime.replace(
+                        tzinfo=None) - cbbuildresponse["builds"][0]["startTime"].replace(tzinfo=None)
+                    if (cbdelta.days) > 14:
+                        resourceType.append(getvalue["resourceType"])
+                        resourceName.append(getvalue["resourceName"])
+                        count.append(1)
+                        reason.append("Code Build is not used")
+                except:
+                    print("No data in code build")
+                
 
             if getvalue["resourceType"] == "AWS::EC2::Instance":
                 #print("Instance")
@@ -707,53 +723,56 @@ def main():
                 s3client = boto3.client('s3')
                 s3objects = []
                 size = 0
-                s3response = s3client.list_objects(
+                try:
+                    s3response = s3client.list_objects(
                     Bucket=getvalue["resourceName"])
-                if 'Contents' in s3response:
-                    for data in s3response['Contents']:
-                        s3objects.append(data['LastModified'])
-                        size = size + data['Size']
-                    #if s3response['IsTruncated'] == True:
-                    # while('IsTruncated' == True in s3response):
-                    #     s3response = s3client.list_objects(
-                    #         Bucket=getvalue["resourceName"] ,Marker=s3response['Key'])
-                    #     for data in s3response['Contents']:
-                    #         s3objects.append(data['LastModified'])
-                    s3delta = endTime.replace(
-                        tzinfo=None) - sorted(s3objects,reverse=True)[0].replace(tzinfo=None)
-                    if (s3delta.days) > 14:
+                    if 'Contents' in s3response:
+                        for data in s3response['Contents']:
+                            s3objects.append(data['LastModified'])
+                            size = size + data['Size']
+                        #if s3response['IsTruncated'] == True:
+                        # while('IsTruncated' == True in s3response):
+                        #     s3response = s3client.list_objects(
+                        #         Bucket=getvalue["resourceName"] ,Marker=s3response['Key'])
+                        #     for data in s3response['Contents']:
+                        #         s3objects.append(data['LastModified'])
+                        s3delta = endTime.replace(
+                            tzinfo=None) - sorted(s3objects,reverse=True)[0].replace(tzinfo=None)
+                        if (s3delta.days) > 14:
+                            resourceType.append(getvalue["resourceType"])
+                            resourceName.append(getvalue["resourceName"])
+                            count.append(1)
+                            reason.append("S3 is not used")
+                            s3resourceType.append(getvalue["resourceType"])
+                            s3resourceName.append(getvalue["resourceName"])
+                            s3size.append(convert_bytes(size))
+                            # s3metricresponse = cloudwatchclient.get_metric_statistics(
+                            #     Namespace="AWS/S3",
+                            #     MetricName='BucketSizeBytes',
+                            #     Dimensions=[
+                            #         {'Name': 'BucketName','Value': getvalue["resourceName"]},
+                            #         {'Name':'StorageType','Value': s3response['Contents'][0]['StorageClass']  + 'Storage'}
+                            #     ],
+                            #     StartTime=startTime,
+                            #     EndTime=endTime,
+                            #     Statistics=["Average"],
+                            #     Period=seconds_in_one_day
+                            # )
+                            # for r in s3metricresponse['Datapoints']:
+                            #     s3resourceType.append(getvalue["resourceType"])
+                            #     s3resourceName.append(getvalue["resourceName"])
+                            #     s3size.append(convert_bytes(r['Average']))
+                    else:
                         resourceType.append(getvalue["resourceType"])
                         resourceName.append(getvalue["resourceName"])
                         count.append(1)
                         reason.append("S3 is not used")
                         s3resourceType.append(getvalue["resourceType"])
                         s3resourceName.append(getvalue["resourceName"])
-                        s3size.append(convert_bytes(size))
-                        # s3metricresponse = cloudwatchclient.get_metric_statistics(
-                        #     Namespace="AWS/S3",
-                        #     MetricName='BucketSizeBytes',
-                        #     Dimensions=[
-                        #         {'Name': 'BucketName','Value': getvalue["resourceName"]},
-                        #         {'Name':'StorageType','Value': s3response['Contents'][0]['StorageClass']  + 'Storage'}
-                        #     ],
-                        #     StartTime=startTime,
-                        #     EndTime=endTime,
-                        #     Statistics=["Average"],
-                        #     Period=seconds_in_one_day
-                        # )
-                        # for r in s3metricresponse['Datapoints']:
-                        #     s3resourceType.append(getvalue["resourceType"])
-                        #     s3resourceName.append(getvalue["resourceName"])
-                        #     s3size.append(convert_bytes(r['Average']))
-                else:
-                    resourceType.append(getvalue["resourceType"])
-                    resourceName.append(getvalue["resourceName"])
-                    count.append(1)
-                    reason.append("S3 is not used")
-                    s3resourceType.append(getvalue["resourceType"])
-                    s3resourceName.append(getvalue["resourceName"])
-                    s3size.append("0 B")
-
+                        s3size.append("0 B")
+                except:
+                    print("No data in S3 Bucket")
+              
     # print(resources)
 
     dataset = {

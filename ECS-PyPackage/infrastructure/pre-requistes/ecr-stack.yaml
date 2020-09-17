@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Creates the ecr to store image
+
+Parameters:
+  Environment:
+    Type: String
+    Description: The environment that the ECR is deployed to
+    Default: sbx
+    AllowedValues:
+      - prd
+      - tst
+      - dev
+      - stg
+      - sbx
+
+Resources:
+  UnusedECR:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Sub ${Environment}-unused-ecr
+      RepositoryPolicyText: |
+        {
+          "Version": "2008-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": [
+                 "ecr:GetDownloadUrlForLayer",
+                 "ecr:BatchGetImage",
+                 "ecr:BatchCheckLayerAvailability",
+                 "ecr:GetAuthorizationToken",
+                 "ecr:PutImage",
+                 "ecr:InitiateLayerUpload",
+                 "ecr:UploadLayerPart",
+                 "ecr:CompleteLayerUpload"
+              ]
+            }
+          ]
+        }
+
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub ${Environment}-unused-ecs
+
+Outputs:
+  UnusedECRRepo:
+    Description: Unused ECR Repo
+    Value: !GetAtt UnusedECR.Arn
+    Export:
+      Name: !Sub ${Environment}-Unused-ECR-Repo
+
+  ECSClusterName:
+    Description: Name for ECSCluster
+    Value: !Ref ECSCluster
+    Export:
+      Name: !Sub ${Environment}-unused-ecs

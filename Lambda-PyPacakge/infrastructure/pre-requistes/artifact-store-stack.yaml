@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Creates the bucket to store build artifacts
+
+Parameters:
+  StackPrefix:
+    Type: String
+    Description: The unique prefix for bucket
+
+  Environment:
+    Type: String
+    Description: The environment that the bucket is deployed to
+    Default: sbx
+    AllowedValues:
+      - prd
+      - tst
+      - dev
+      - stg
+      - sbx
+
+Resources:
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Sub ${StackPrefix}-${Environment}-artifacts
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Name
+          Value: !Sub ${StackPrefix}-${Environment}-artifacts-s3
+
+Outputs:
+  ArtifactStore:
+    Value: !Ref ArtifactBucket
+    Export:
+      Name: !Sub ${StackPrefix}-${Environment}-artifacts
