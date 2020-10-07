@@ -579,13 +579,20 @@ def lambda_handler(event, context):
                 try:
                     pipelineresponse = pipelineclient.list_pipeline_executions(
                     pipelineName=getvalue["resourceId"])
-                    cpdelta = endTime.replace(
-                        tzinfo=None) - pipelineresponse["pipelineExecutionSummaries"][0]["lastUpdateTime"].replace(tzinfo=None)
-                    if (cpdelta.days) > 14:
+                    if 'pipelineExecutionSummaries' in pipelineresponse:
+                        cpdelta = endTime.replace(
+                            tzinfo=None) - pipelineresponse["pipelineExecutionSummaries"][0]["lastUpdateTime"].replace(tzinfo=None)
+                        if (cpdelta.days) > 14:
+                            resourceType.append(getvalue["resourceType"])
+                            resourceName.append(getvalue["resourceId"])
+                            count.append(1)
+                            reason.append("Pipeline is not used")
+                    else:
+                        print("No data in pipeline") 
                         resourceType.append(getvalue["resourceType"])
                         resourceName.append(getvalue["resourceId"])
                         count.append(1)
-                        reason.append("Pipeline is not used")
+                        reason.append("Pipeline is not used")      
                 except:
                     print("No data in pipeline")
                 
